@@ -1,0 +1,17 @@
+import { service } from '../service.js';
+import { categories } from '../data.js';
+import { icon } from '../icons.js';
+import { card, empty, esc } from '../components/ui.js';
+export function browse(params) {
+  return `<section class="wrap page-section"><div class="page-heading"><div class="eyebrow">THE CAMPUS LOST & FOUND</div><h1>A good place to look<span class="lime-period">.</span></h1><p>Little things. Big relief. Let’s find what you’re missing.</p></div><form id="browse-form" class="browse-controls"><div class="search-control">${icon('search')}<label class="sr-only" for="browse-search">Search items</label><input id="browse-search" name="q" value="${esc(params.get('q') || '')}" placeholder="Search by name, brand, color, or location..."><button class="btn dark" type="submit">Search ${icon('right')}</button></div><div class="filter-row"><div class="segmented" aria-label="Listing type">${[['','All items'],['found','Found items'],['lost','Lost items']].map(([v,l]) => `<button type="button" data-type="${v}" class="${(params.get('type') || '') === v ? 'selected' : ''}" aria-pressed="${(params.get('type') || '') === v}">${l}</button>`).join('')}</div><div class="filter-selects"><label>${icon('filter')}<span class="sr-only">Category</span><select name="category"><option value="">All categories</option>${categories.map(c => `<option ${params.get('category') === c ? 'selected' : ''}>${c}</option>`).join('')}</select></label><label><span class="sr-only">Sort items</span><select name="sort"><option value="newest">Newest first</option><option value="oldest" ${params.get('sort') === 'oldest' ? 'selected' : ''}>Oldest first</option></select></label></div></div></form><div id="browse-results"></div></section>`;
+}
+export function mountBrowse(params) {
+  const q = (params.get('q') || '').toLowerCase().trim(), type = params.get('type'), category = params.get('category');
+  const items = service.items().filter(i => (!type || i.type === type) && (!category || i.category === category) && (!q || [i.title,i.description,i.brand,i.color,i.category,i.location].join(' ').toLowerCase().includes(q))).sort((a,b) => (params.get('sort') === 'oldest' ? 1 : -1) * a.date.localeCompare(b.date));
+  document.querySelector('#browse-results').innerHTML = `<div class="result-summary"><span><strong>${items.length}</strong> ${items.length === 1 ? 'item' : 'items'} ${q ? `matching “${esc(params.get('q'))}”` : 'around campus'}</span>${q || type || category || params.get('sort') === 'oldest' ? '<a class="text-link" href="#/browse">Clear filters ×</a>' : '<span class="muted">A little closer to a happy reunion</span>'}</div>${items.length ? `<div class="item-grid">${items.map(card).join('')}</div>` : empty('No matches. Not the end of the search.', 'Try a different word or clear your filters. You can also post a lost report.', '<a class="btn primary" href="#/report?type=lost">Report a lost item</a>')}`;
+  const form = document.querySelector('#browse-form');
+  function apply(nextType = type || '') { const values = new URLSearchParams(new FormData(form)); if (nextType) values.set('type', nextType); for (const [key,value] of [...values]) if (!value) values.delete(key); location.hash = '/browse?' + values.toString(); }
+  form.onsubmit = e => { e.preventDefault(); apply(); };
+  form.querySelectorAll('[data-type]').forEach(b => b.onclick = () => apply(b.dataset.type));
+  form.querySelectorAll('select').forEach(s => s.onchange = () => apply());
+}
