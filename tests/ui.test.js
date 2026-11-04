@@ -1,4 +1,5 @@
 // Uses a clean local demo. Run on a throwaway origin/browser profile.
+localStorage.removeItem('reclaim.demo.v1');
 localStorage.removeItem('found.demo.v1');
 const frame=document.querySelector('#app'), results=[];
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
@@ -41,4 +42,5 @@ await check('Unauthorised editing has an understandable state',async()=>{await r
 await check('Unknown route renders recovery navigation',async()=>{await route('/missing');assert(find('.empty').textContent.includes('A little lost'))});
 await check('Desktop home, browse, report, inbox and profile fit viewport',async()=>{frame.style.width='1440px';for(const path of ['/','/browse','/report','/messages','/profile']){await route(path);fits()}});
 const failures=results.filter(r=>r.startsWith('FAIL'));document.querySelector('#results').textContent+=`\n\n${results.length-failures.length}/${results.length} passed`;document.body.dataset.testStatus=failures.length?'failed':'passed';
+localStorage.removeItem('reclaim.demo.v1');
 localStorage.removeItem('found.demo.v1');

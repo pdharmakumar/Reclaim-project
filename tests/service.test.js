@@ -1,11 +1,15 @@
 // Run only on a throwaway origin/profile: these checks reset local demo data.
+localStorage.removeItem('reclaim.demo.v1');
 localStorage.removeItem('found.demo.v1');
+const {seedItems}=await import('/src/data.js');
+localStorage.setItem('found.demo.v1',JSON.stringify({version:1,userId:'alex',items:seedItems,claims:[],conversations:[],messages:[]}));
 const {service:s}=await import('/src/service.js');
 const results=[];
 function check(name, fn) { try { fn(); results.push('PASS '+name); } catch(e) { results.push('FAIL '+name+': '+e.message); } }
 function assert(ok,message='Assertion failed') { if (!ok) throw Error(message); }
 function denied(fn) { let threw=false; try { fn(); } catch { threw=true; } assert(threw,'Expected permission or validation error'); }
 const originalCount=s.items().length;
+check('Existing demo data migrates to Reclaim without loss',()=>{assert(localStorage.getItem('reclaim.demo.v1'));assert(!localStorage.getItem('found.demo.v1'));assert(originalCount===6)});
 check('Sample listings are available',()=>assert(originalCount===6));
 check('Users cannot edit another student’s report',()=>denied(()=>s.updateItem('headphones',s.item('headphones'))));
 check('Users cannot delete another student’s report',()=>denied(()=>s.deleteItem('headphones')));
@@ -46,4 +50,5 @@ check('Deleting a listing removes linked private data',()=>{s.deleteItem(reportI
 const failures=results.filter(r=>r.startsWith('FAIL'));
 document.querySelector('#results').textContent=results.join('\n')+`\n\n${results.length-failures.length}/${results.length} passed`;
 document.body.dataset.testStatus=failures.length?'failed':'passed';
+localStorage.removeItem('reclaim.demo.v1');
 localStorage.removeItem('found.demo.v1');

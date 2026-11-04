@@ -1,4 +1,4 @@
-# FOUND.
+# Reclaim.
 
 **Lost it? Let’s find it.** A responsive school lost-and-found application with a cream, charcoal, and electric-lime design system.
 
@@ -34,7 +34,7 @@ Use **Profile** to switch identities. For a full walkthrough:
 3. Switch back to **Alex** and confirm the arrangement.
 4. As **Jamie**, mark the item collected. Its listing will show Returned.
 
-These identities, items, and pickup locations are fictional examples. Demo permissions protect UI flows but cannot secure data against someone with browser access. Do not enter real personal or confidential information. Clearing the site’s browser storage resets the demo. Optional Google Fonts use system fallbacks if unavailable; icons and listing photos are served locally.
+These identities, items, and pickup locations are fictional examples. Demo permissions protect UI flows but cannot secure data against someone with browser access. Do not enter real personal or confidential information. Existing local demo data migrates automatically to the Reclaim. storage key. Clearing the site’s browser storage resets the demo. Optional Google Fonts use system fallbacks if unavailable; icons and listing photos are served locally.
 
 ## Verification and static build
 
@@ -49,4 +49,4 @@ Browser tests run at `/tests/` (service lifecycle and permission checks) and `/t
 
 ## Collaboration and production integration
 
-Work remains local on `main`; no push, branch merge, or deployment is performed. The initial repository and all feature branch refs contained only a README and `.gitignore`. Modules are separated for the Browse, Reports, and claims owners. See [the inspection and integration plan](docs/INTEGRATION.md) for exact boundaries, service contracts, and the authentication/database/storage work required before school-wide use.
+The application is maintained on `main`, with separate feature modules for collaborative integration. No automatic branch merges or deployments are part of this setup. The initial repository and all feature branch refs contained only a README and `.gitignore`. Modules are separated for the Browse, Reports, and claims owners. See [the inspection and integration plan](docs/INTEGRATION.md) for exact boundaries, service contracts, and the authentication/database/storage work required before school-wide use.

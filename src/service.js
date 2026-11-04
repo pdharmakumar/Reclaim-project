@@ -1,8 +1,10 @@
 import { seedItems, users, pickupLocations, categories } from './data.js';
-const KEY = 'found.demo.v1';
+const KEY = 'reclaim.demo.v1';
+// Read the previous storage key once to preserve reports, photos, and conversations.
+const LEGACY_KEY = 'found.demo.v1';
 const initial = () => ({ version: 1, userId: 'alex', items: structuredClone(seedItems), claims: [], conversations: [], messages: [] });
 let db;
-try { db = JSON.parse(localStorage.getItem(KEY)) || initial(); if (db.version !== 1 || !Array.isArray(db.items) || !users.some(u => u.id === db.userId)) throw Error(); }
+try { const saved = localStorage.getItem(KEY); const legacy = saved ? null : localStorage.getItem(LEGACY_KEY); db = JSON.parse(saved || legacy) || initial(); if (db.version !== 1 || !Array.isArray(db.items) || !users.some(u => u.id === db.userId)) throw Error(); if (legacy) { try { localStorage.setItem(KEY, JSON.stringify(db)); localStorage.removeItem(LEGACY_KEY); } catch { /* Preserve in-memory data when browser storage is full. */ } } }
 catch { db = initial(); }
 const id = () => crypto.randomUUID();
 const requireValue = (ok, message) => { if (!ok) throw new Error(message); };
@@ -11,7 +13,7 @@ const save = mutation => {
   const result = mutation(next);
   try { localStorage.setItem(KEY, JSON.stringify(next)); } catch { throw new Error('Your browser storage is full or unavailable. Remove a few photos, or enable browser storage, and try again.'); }
   db = next;
-  window.dispatchEvent(new Event('found:change'));
+  window.dispatchEvent(new Event('reclaim:change'));
   return result;
 };
 const itemIn = (d, itemId) => { const item = d.items.find(i => i.id === itemId); requireValue(item, 'This listing is no longer available.'); return item; };
@@ -77,4 +79,4 @@ export const service = {
   }),
   confirmPickup: claimId => save(d => { const c = claimIn(d, claimId); requireValue(c.status === 'Approved' && c.pickup, 'No pickup arrangement is awaiting confirmation.'); if (!c.pickup.confirmedBy.includes(d.userId)) c.pickup.confirmedBy.push(d.userId); if (c.pickup.confirmedBy.length === 2) c.status = 'Ready for Pickup'; }),
 };
-window.addEventListener('storage', e => { if (e.key === KEY && e.newValue) { try { const next = JSON.parse(e.newValue); if (next.version === 1) { db = next; window.dispatchEvent(new Event('found:external-change')); } } catch { /* Keep the last valid state. */ } } });
+window.addEventListener('storage', e => { if (e.key === KEY && e.newValue) { try { const next = JSON.parse(e.newValue); if (next.version === 1) { db = next; window.dispatchEvent(new Event('reclaim:external-change')); } } catch { /* Keep the last valid state. */ } } });
