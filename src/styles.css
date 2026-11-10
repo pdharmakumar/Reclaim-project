@@ -10,6 +10,33 @@
   --body:'Inter','DM Sans',Arial,sans-serif;
   --radius:18px
 }
+.auth-page { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,440px); gap:clamp(32px,7vw,110px); align-items:center; min-height:650px; }
+.auth-intro h1 { font-family:var(--heading); font-size:clamp(44px,6vw,80px); line-height:1.04; letter-spacing:-.055em; margin:22px 0; }
+.auth-intro>p { font-size:17px; line-height:1.75; max-width:410px; color:var(--muted); }
+.auth-intro .safety-note { max-width:390px; margin:28px 0; }
+.auth-card { background:var(--white); border:1px solid var(--line); border-radius:24px; padding:clamp(22px,3vw,38px); box-shadow:0 16px 40px #1c211d06; min-width:0; }
+.auth-card h2 { font-family:var(--heading); font-size:28px; letter-spacing:-.035em; margin:20px 0 8px; }
+.auth-card-mark { width:46px; height:46px; border-radius:14px; display:grid; place-items:center; background:var(--lime); font-size:32px; }
+.auth-card form { margin-top:26px; }
+.auth-card input { width:100%; min-width:0; }
+.auth-card label { display:block; margin:20px 0 9px; font-weight:600; }
+.auth-card .password-label { display:flex; align-items:baseline; justify-content:space-between; gap:16px; }
+.auth-card .password-label button { font-size:12px; }
+.auth-card .form-error { min-height:20px; }
+.auth-switch { text-align:center; margin:24px 0 0; font-size:13px; }
+.auth-switch a,.auth-recover { text-decoration:underline; text-underline-offset:3px; font-weight:600; }
+.auth-recover { display:block; margin-top:12px; text-align:right; font-size:12px; }
+.recovery-code { display:block; overflow-wrap:anywhere; background:var(--sage); border:1px solid var(--line); padding:18px; margin:24px 0; border-radius:12px; font-size:15px; line-height:1.7; user-select:all; }
+.profile-account-links { display:flex; flex-wrap:wrap; gap:12px; margin:24px 0 32px; }
+.profile-card>p { overflow-wrap:anywhere; }
+@media(max-width:760px) {
+  .auth-page { grid-template-columns:minmax(0,1fr); min-height:auto; gap:30px; }
+  .auth-intro h1 { font-size:48px; }
+  .auth-intro h1 br { display:none; }
+  .auth-intro>p { max-width:none; font-size:15px; }
+  .auth-intro .safety-note { margin:18px 0; }
+  .auth-card { max-width:480px; width:100%; justify-self:center; }
+}
 * {
   box-sizing:border-box
 }

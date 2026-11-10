@@ -19,7 +19,7 @@ export function modal(title, body, onMount) {
 export function confirm(title, description, action) {
   modal(title, `<p>${esc(description)}</p><div class="button-row"><button class="btn secondary" id="cancel">Keep listing</button><button class="btn danger" id="confirm">Remove listing</button></div>`, d => {
     d.querySelector('#cancel').onclick = () => d.close();
-    d.querySelector('#confirm').onclick = () => { try { action(); d.close(); } catch (e) { toast(e.message); } };
+    d.querySelector('#confirm').onclick = async e => { const button=e.currentTarget; button.disabled=true; try { await action(); d.close(); } catch (error) { toast(error.message); button.disabled=false; } };
   });
 }
 document.addEventListener('error', e => { if (e.target instanceof HTMLImageElement && e.target.dataset.fallback) { delete e.target.dataset.fallback; e.target.src = '/public/placeholder.svg'; } }, true);

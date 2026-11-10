@@ -1,0 +1,18 @@
+{
+  "name": "reclaim",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "python3 scripts/build.py",
+    "dev": "npm run build && wrangler dev",
+    "check": "python3 scripts/check.py && node scripts/check-js.mjs",
+    "test": "npm run build && node scripts/check-js.mjs && wrangler deploy --dry-run --outdir .worker-test && node --test tests/server.test.mjs tests/client.test.mjs",
+    "db:local": "wrangler d1 migrations apply DB --local",
+    "db:remote": "node scripts/production-ready.mjs && wrangler d1 migrations apply DB --remote",
+    "deploy": "node scripts/production-ready.mjs && npm run build && wrangler deploy --keep-vars"
+  },
+  "devDependencies": {
+    "miniflare": "5.20261110.0-beta",
+    "wrangler": "4.160.0"
+  }
+}

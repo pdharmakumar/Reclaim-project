@@ -1,46 +1,11 @@
-// Uses a clean local demo. Run on a throwaway origin/browser profile.
-localStorage.removeItem('reclaim.demo.v1');
-localStorage.removeItem('found.demo.v1');
-const frame=document.querySelector('#app'), results=[];
-const sleep=ms=>new Promise(r=>setTimeout(r,ms));
-async function until(predicate){for(let i=0;i<300;i++){if(predicate())return;await sleep(20)}throw Error('Timed out waiting for browser image processing')}
-const assert=(ok,message='Assertion failed')=>{if(!ok)throw Error(message)};
-const check=async(name,fn)=>{try{await fn();results.push('PASS '+name)}catch(e){results.push('FAIL '+name+': '+e.message)}document.querySelector('#results').textContent=results.join('\n')};
-frame.src='/';
-await new Promise(r=>frame.onload=r);
-const win=frame.contentWindow, doc=frame.contentDocument;
-await sleep(100);
-const find=selector=>{const el=doc.querySelector(selector);assert(el,'Missing '+selector);return el};
-async function route(hash){win.location.hash=hash;await sleep(60)}
-function fill(selector,value){const el=find(selector);el.value=value;el.dispatchEvent(new win.Event('input',{bubbles:true}));}
-async function submit(selector){find(selector).requestSubmit();await sleep(80)}
-function fits(){assert(doc.documentElement.scrollWidth<=win.innerWidth,'Horizontal overflow: '+doc.documentElement.scrollWidth+' > '+win.innerWidth)}
-await check('Mobile homepage renders without overflow',()=>{assert(find('h1').textContent.includes('Lost something'));fits()});
-await check('Mobile menu opens with accessible state',()=>{find('#menu-toggle').click();assert(find('#menu-toggle').getAttribute('aria-expanded')==='true');assert(find('#main-nav').classList.contains('open'))});
-await check('Homepage search applies query to browse',async()=>{fill('#home-search','Sony');await submit('.hero-search');assert(win.location.hash.includes('q=Sony'),'Query is '+win.location.hash);assert(doc.querySelectorAll('.item-card').length===2,'Expected 2 Sony listings, saw '+doc.querySelectorAll('.item-card').length);fits()});
-await check('Search and category filter work together',async()=>{fill('[name=category]','Electronics');find('[name=category]').dispatchEvent(new win.Event('change'));await sleep(60);assert(doc.querySelectorAll('.item-card').length===2,'Expected 2 Sony electronics, saw '+doc.querySelectorAll('.item-card').length)});
-await check('Lost filter and search yield a useful empty state',async()=>{find('[data-type=lost]').click();await sleep(60);assert(find('.empty').textContent.includes('No matches'))});
-await check('Filters clear and oldest sort works',async()=>{await route('/browse?sort=oldest');assert(find('.item-card').getAttribute('href').endsWith('/keys'));fits()});
-await check('Listing details offer contact and claim actions',async()=>{await route('/item/headphones');find('#claim-item');find('#contact-item');fits()});
-await check('Claim modal validates, submits, and opens claim tracking',async()=>{find('#claim-item').click();assert(find('#modal').open);fill('#verification','The left ear pad has a tiny star drawn underneath.');await submit('#claim-form');assert(win.location.hash==='#/claims');assert(find('.badge.request-submitted'));fits()});
-await check('Claim links to a real conversation',async()=>{find('.claim-next a').click();await sleep(70);find('#message-form');fits()});
-await check('Message sends and renders as text',async()=>{fill('#message-text','Hello! <script>never execute this</script>');await submit('#message-form');assert(find('.bubble').textContent.includes('<script>'));assert(!doc.querySelector('.bubble script'));assert(find('#message-text').value==='')});
-await check('Switching demo account reveals incoming claim',async()=>{await route('/profile');fill('#demo-account','jamie');find('#demo-account').dispatchEvent(new win.Event('change'));await route('/claims');assert(find('.claim-header').textContent.includes('INCOMING CLAIM'));fits()});
-await check('Finder reviews and approves through controls',async()=>{find('[data-next="Under Review"]').click();find('[data-next="Approved"]').click();assert(find('.badge.approved'));find('.pickup-form')});
-await check('Pickup proposal records time and location',async()=>{find('details').open=true;fill('.pickup-form [name=location]','Main office');const date=new Date(Date.now()+86400000);const local=new Date(date.getTime()-date.getTimezoneOffset()*60000).toISOString().slice(0,16);fill('.pickup-form [name=time]',local);await submit('.pickup-form');assert(find('.pickup-summary').textContent.includes('1 of 2 confirmed'));fits()});
-await check('Other participant confirms pickup',async()=>{await route('/profile');fill('#demo-account','alex');find('#demo-account').dispatchEvent(new win.Event('change'));await route('/claims');find('[data-confirm-pickup]').click();assert(find('.badge.ready-for-pickup'));assert(!doc.querySelector('[data-next=Completed]'))});
-await check('Finder completes reunion and listing shows returned',async()=>{await route('/profile');fill('#demo-account','jamie');find('#demo-account').dispatchEvent(new win.Event('change'));await route('/claims');find('[data-next=Completed]').click();assert(find('.badge.completed'));await route('/item/headphones');assert(find('.badge.returned'))});
-await check('Report form works at mobile width',async()=>{await route('/report?type=lost');fits();fill('#title','My purple notebook');fill('#category','School supplies');fill('#description','A purple notebook with a small star and a green sticker.');fill('#location','Library reading room')});
-await check('Valid photo uploads preview and can be removed',async()=>{const canvas=doc.createElement('canvas');canvas.width=20;canvas.height=20;canvas.getContext('2d').fillRect(0,0,20,20);const blob=await new Promise(r=>canvas.toBlob(r,'image/png'));const file=new win.File([blob],'notebook.png',{type:'image/png'});const dt=new win.DataTransfer();dt.items.add(file);find('#photos').files=dt.files;find('#photos').dispatchEvent(new win.Event('change'));await until(()=>!find('#review-button').disabled);assert(doc.querySelectorAll('.photo-previews img').length===1,'Preview missing: '+find('#upload-error').textContent);find('[data-remove-photo]').click();assert(doc.querySelectorAll('.photo-previews img').length===0,'Remove left '+doc.querySelectorAll('.photo-previews img').length+' previews: '+find('#photo-previews').innerHTML);const again=new win.DataTransfer();again.items.add(file);find('#photos').files=again.files;find('#photos').dispatchEvent(new win.Event('change'));await until(()=>!find('#review-button').disabled);assert(doc.querySelectorAll('.photo-previews img').length===1,'Second preview missing: '+find('#upload-error').textContent)});
-await check('Unsupported upload shows a useful error',async()=>{const dt=new win.DataTransfer();dt.items.add(new win.File(['no'],'notes.txt',{type:'text/plain'}));find('#photos').files=dt.files;find('#photos').dispatchEvent(new win.Event('change'));await sleep(80);assert(find('#upload-error').textContent.includes('JPG'))});
-await check('Review shows photos and supports editing',async()=>{await submit('#report-form');assert(!find('#report-review').hidden);assert(find('.review-photos img'));find('#back-to-edit').click();assert(!find('#report-fields').hidden);await submit('#report-form')});
-let reportId;
-await check('Publish saves listing and displays success',async()=>{find('#publish-report').click();await sleep(80);assert(win.location.hash.startsWith('#/success/'));reportId=win.location.hash.split('/').at(-1);find('.empty .btn.primary').click();await sleep(70);assert(find('h1').textContent==='My purple notebook');assert(find('.gallery-main img').src.startsWith('data:image/jpeg'));fits()});
-await check('Own listing can be edited and photo persists',async()=>{await route('/report/'+reportId);assert(find('#title').value==='My purple notebook');assert(doc.querySelectorAll('.photo-previews img').length===1);fill('#description','Updated description with more identifying details and a green sticker.');await submit('#report-form');find('#publish-report').click();await sleep(70)});
-await check('My reports changes status and removes with confirmation',async()=>{await route('/my-reports');fill(`[data-status="${reportId}"]`,'Found');find(`[data-status="${reportId}"]`).dispatchEvent(new win.Event('change'));find(`[data-delete="${reportId}"]`).click();assert(find('#modal').open);find('#confirm').click();assert(!doc.querySelector(`[data-delete="${reportId}"]`));fits()});
-await check('Unauthorised editing has an understandable state',async()=>{await route('/report/keys');assert(find('.empty').textContent.includes('isn’t yours'))});
-await check('Unknown route renders recovery navigation',async()=>{await route('/missing');assert(find('.empty').textContent.includes('A little lost'))});
-await check('Desktop home, browse, report, inbox and profile fit viewport',async()=>{frame.style.width='1440px';for(const path of ['/','/browse','/report','/messages','/profile']){await route(path);fits()}});
-const failures=results.filter(r=>r.startsWith('FAIL'));document.querySelector('#results').textContent+=`\n\n${results.length-failures.length}/${results.length} passed`;document.body.dataset.testStatus=failures.length?'failed':'passed';
-localStorage.removeItem('reclaim.demo.v1');
-localStorage.removeItem('found.demo.v1');
+// Read-only checks; never reset accounts, reports, messages, or browser storage.
+const frame=document.querySelector('#app'), output=document.querySelector('#results');
+frame.src='/#/login';
+try {
+  await new Promise(resolve => frame.addEventListener('load',resolve,{once:true}));
+  for (let attempt=0;attempt<100 && !frame.contentDocument.querySelector('#auth-form,.profile-page');attempt++) await new Promise(resolve => setTimeout(resolve,50));
+  const doc=frame.contentDocument;
+  if (!doc.querySelector('#auth-form,.profile-page')) throw Error('Account page did not load.');
+  if (doc.documentElement.scrollWidth > frame.clientWidth+1) throw Error('Account page overflows at 390px.');
+  document.body.dataset.testStatus='passed'; output.textContent='PASS: account route loads without horizontal overflow at 390px.';
+} catch (error) { document.body.dataset.testStatus='failed'; output.textContent=error.message; }

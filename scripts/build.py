@@ -7,6 +7,8 @@ import sys
 ROOT = Path(__file__).resolve().parent.parent
 subprocess.run([sys.executable, str(ROOT / 'scripts/check.py')], check=True)
 destination = ROOT / 'dist'
+if destination.exists():
+    shutil.rmtree(destination)
 destination.mkdir(exist_ok=True)
 shutil.copy2(ROOT / 'index.html', destination / 'index.html')
 for name in ('src', 'public'):

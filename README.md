@@ -1,52 +1,43 @@
 # Reclaim.
 
-**Lost it? Let’s find it.** A responsive school lost-and-found application with a cream, charcoal, and electric-lime design system.
+**Lost it? Let’s find it.** A campus lost-and-found with email/password accounts, private claims and messages, and a cream, charcoal, and electric-lime design.
 
 ## Run locally
 
-From this repository:
+Use Node.js 22 or newer and Python 3:
 
 ```sh
-python3 -m http.server 4173 --bind 127.0.0.1
+npm ci
+npm run db:local
+npm run dev
 ```
 
-Open **http://localhost:4173** in a modern browser. Keep using the same hostname: `localhost` and `127.0.0.1` have separate browser storage. No Node, npm, API keys, paid services, or package installation is needed. Serve over HTTP; don’t open `index.html` directly from disk.
+Open the Local URL printed by Wrangler. Keep the same hostname: `localhost` and `127.0.0.1` have different login cookies. The local database lives in ignored `.wrangler/` state; restarting the server preserves accounts and reports. No paid service, email provider, or API key is required for local development. A plain Python static server no longer runs the account backend.
+
+## Accounts
+
+- Create an account with a display name, email address, and an **8–128 character password**.
+- Save the recovery code shown after sign-up. It is displayed once and allows a password reset; resetting rotates the code and revokes previous sessions. Reclaim does not send reset emails.
+- Login uses a server-issued HttpOnly cookie. Passwords, recovery codes, and session tokens are hashed in the database. Credentials and private account data are never persisted in localStorage.
+- Browsing and item details are public. Reporting, claims, messaging, and the profile require login. Email addresses stay private; public reports show display names.
+- The server assigns every owner/sender from the session and checks all report, conversation, claim, and pickup permissions. Demo-account switching has been removed.
 
 ## Working features
 
-- Editorial homepage, responsive navigation, shared cards, semantic forms, visible keyboard focus, and reduced-motion support.
-- Search across title, description, brand, color, category, and location; combined type/category filters and newest/oldest sorting.
-- Listing details and navigable multi-photo galleries.
-- Lost/found reports, review before publication, drag-and-drop or device uploads, previews, removal, image processing, validation, and local persistence.
-- Creator-only report editing, status management, and confirmed deletion.
-- Private claim requests, finder review/approval/decline, configurable example pickup locations, confirmation by both participants, and completion that marks the item returned.
-- Item-linked conversations, persistent messages, timestamps, read receipts, unread counts, and participant checks.
-- Three switchable, explicitly labeled demo accounts.
+Responsive navigation, search/filter/sort, item galleries, lost/found reports with optional photo uploads, report editing and removal, ownership claims, finder review, pickup confirmation, and private item-linked messaging. Reports and messages are stored in D1 and available across devices after deployment. Messages refresh every 15 seconds when the composer is empty; drafts are not interrupted by polling.
 
-## Demo boundaries
-
-This is a **browser-local demonstration**, not a live school service. There is no backend, real authentication, or communication between devices. Data and processed image data URLs live in localStorage. Photos are optional, limited to six JPG/PNG/WebP files of 5 MB each, and resized to at most 1,000 px. Browser storage capacity varies; failed saves show an error and retain the prior state.
-
-Use **Profile** to switch identities. For a full walkthrough:
-
-1. As **Alex**, open Jamie’s headphones and request a claim with a distinguishing detail. Send a message.
-2. Switch to **Jamie**, open Claims, start review, approve, and suggest a future pickup at an example location. Reply in Messages.
-3. Switch back to **Alex** and confirm the arrangement.
-4. As **Jamie**, mark the item collected. Its listing will show Returned.
-
-These identities, items, and pickup locations are fictional examples. Demo permissions protect UI flows but cannot secure data against someone with browser access. Do not enter real personal or confidential information. Existing local demo data migrates automatically to the Reclaim. storage key. Clearing the site’s browser storage resets the demo. Optional Google Fonts use system fallbacks if unavailable; icons and listing photos are served locally.
-
-## Verification and static build
+## Verify
 
 ```sh
-python3 scripts/check.py
-python3 scripts/build.py
+npm test
 ```
 
-The build copies only application assets into ignored `dist/`. Native JavaScript modules require no transpilation. A Node-based lint/typecheck setup is not present; browser tests load the actual modules and verify behavior.
+This builds the static assets and Worker, then runs client checks and integration tests against the actual Workers runtime and an isolated D1 database. Tests cover signup/login/logout, the 8-character minimum, session expiry, reset-code races, private-data filtering, ownership checks, concurrent claim approvals, pickup completion, CSRF checks, rate limiting, and stale responses after account changes. Test data is disposable and does not touch the local preview database.
 
-Browser tests run at `/tests/` (service lifecycle and permission checks) and `/tests/ui.html` (end-to-end interface and responsive checks). **Run tests in a separate browser profile or on a throwaway origin:** both reset local demo data. A passing run sets `body[data-test-status="passed"]` and prints the result count. The UI runner creates sample reports and uploads a generated PNG, switches accounts, sends messages, and completes a recovery.
+`npm run check` checks source imports and JavaScript syntax. `npm run build` produces a clean `dist/` containing only public application assets. `worker/`, tests, migrations, credentials, and database files are never copied into that directory.
 
-## Collaboration and production integration
+## Publish to the existing website
 
-The application is maintained on `main`, with separate feature modules for collaborative integration. No automatic branch merges or deployments are part of this setup. The initial repository and all feature branch refs contained only a README and `.gitignore`. Modules are separated for the Browse, Reports, and claims owners. See [the inspection and integration plan](docs/INTEGRATION.md) for exact boundaries, service contracts, and the authentication/database/storage work required before school-wide use.
+Follow [account deployment instructions](docs/ACCOUNTS.md). Configure the Cloudflare account that owns `reclaim.jesickle.workers.dev` and create/bind its D1 database before deployment. Deploy and remote-migration scripts refuse to run until explicit account and database IDs are configured. GitHub access by itself does not grant Cloudflare access.
+
+The previous browser demo is preserved in existing localStorage keys but is not automatically uploaded or assigned to a new account. New server databases start empty. The example pickup locations must be confirmed with the campus before real use. Email is an unverified login identifier; this implementation does not claim school membership or provide school SSO. See [integration notes](docs/INTEGRATION.md) for the module map and remaining school-wide deployment work.

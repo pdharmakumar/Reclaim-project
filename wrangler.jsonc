@@ -1,0 +1,18 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "reclaim",
+  "main": "worker/index.js",
+  "compatibility_date": "2026-11-10",
+  "compatibility_flags": ["nodejs_compat"],
+  "assets": {
+    "directory": "./dist",
+    "binding": "ASSETS",
+    "run_worker_first": ["/api/*"]
+  },
+  "d1_databases": [{
+    "binding": "DB",
+    "database_name": "reclaim-accounts",
+    "migrations_dir": "migrations"
+  }],
+  "observability": { "enabled": true, "traces": { "enabled": true } }
+}

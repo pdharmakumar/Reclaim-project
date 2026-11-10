@@ -147,3 +147,9 @@ vite.config.ts.timestamp-*
 
 # Turbo Repo
 .turbo
+
+# Local Workers state and credentials
+.wrangler/
+.worker-test/
+.dev.vars
+.dev.vars.*
