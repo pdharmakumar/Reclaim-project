@@ -1,6 +1,6 @@
 # Account backend and deployment
 
-The existing native JavaScript frontend and hash routes are retained. A same-origin Cloudflare Worker serves `/api/*`; static application assets are served from `dist/`. Account and application data live in D1. There are no runtime service secrets or external email dependencies.
+The existing native JavaScript frontend and hash routes are retained. A same-origin Cloudflare Worker serves `/api/*`; static application assets are served from `dist/`. Account and application data live in D1. There are no runtime service secrets or external email dependencies. The optional `/#/demo` mode is entirely browser-local and needs no account or backend; it delegates to `src/demo-service.js` and never sends demo operations to `/api/*`.
 
 ## Configure the existing Cloudflare account
 
@@ -36,7 +36,7 @@ npm run deploy
 
 Verify the returned deployment URL is the existing `reclaim.jesickle.workers.dev` address. Then check:
 
-1. Signed out: browsing works, `/api/state` returns `user: null` and empty private record arrays, and Profile/Report/Claims/Messages lead to login.
+1. Signed out: browsing works, `/api/state` returns `user: null` and empty private record arrays, and Profile/Report/Claims/Messages lead to login. The explicit Demo link opens sample reports and private-flow simulations without signing in, even when the API is unavailable.
 2. Create two disposable accounts in a staging environment. Confirm an 8-character password works and 7 characters fail. Save the one-use recovery codes.
 3. Create a report as one account and claim/message it as the other in a separate browser profile. Check delivery and that an unrelated third account sees neither private claims nor messages.
 4. Confirm logout and recovery invalidate the appropriate sessions. The production HTTPS cookie must include `__Host-`, `Secure`, `HttpOnly`, `SameSite=Lax`, and `Path=/`.
@@ -50,7 +50,7 @@ Verify the returned deployment URL is the existing `reclaim.jesickle.workers.dev
 - Mutations reuse the existing claim and listing rules on the server. A revision trigger and transactional D1 batches reject stale writes; retries reread and revalidate, preventing two approvals from winning or updates from silently overwriting each other.
 - Each listing accepts up to six bounded inline JPEG/PNG/WebP photos (240,000 encoded characters each), checked for base64, type, signature, and size. The browser resizes/re-encodes images first. Server image re-encoding, object storage, moderation, quotas, pagination, and efficient large-dataset queries remain separate work before broader school rollout. This version reads the small campus dataset to apply its existing rules; it is not designed for an unbounded public marketplace.
 - Email is not verified. Do not use it to grant school access or privileged roles. School SSO and email-based recovery are not configured. The recovery code is the only reset method; without it, an account cannot be recovered.
-- Old demo storage is left untouched and never trusted as authentication or silently imported into shared storage. New databases contain no fictional reports or switchable identities.
+- Old demo storage is left untouched and never trusted as authentication or silently imported into shared storage. New databases contain no fictional reports or switchable identities. Those exist only in the isolated local demo, where they require no sign-in.
 
 Check the deployment plan’s CPU allowance with the password-hashing workload; local runtime tests do not establish production quota behavior. Logs/traces are enabled for operational diagnosis; review Cloudflare’s trace access/retention for the deployment’s audience.
 

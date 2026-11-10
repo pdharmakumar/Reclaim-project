@@ -70,3 +70,36 @@ test('an old response cannot restore private data after another tab changes acco
   await assert.rejects(pending,/account changed/);
   assert.equal(tab.currentUser(),null);
 });
+
+test('the complete demo needs no account or backend and stays separate from real account data',async () => {
+  const local = new Map(), session = new Map();
+  globalThis.localStorage = { getItem:key=>local.get(key)||null, setItem:(key,value)=>local.set(key,value), removeItem:key=>local.delete(key) };
+  globalThis.sessionStorage = { getItem:key=>session.get(key)||null, setItem:(key,value)=>session.set(key,value), removeItem:key=>session.delete(key) };
+  let requests=0;
+  globalThis.fetch = async () => { requests++; throw new Error('No backend is available.'); };
+  await service.startDemo();
+  assert.equal(service.isDemo(),true); assert.equal(service.currentUser().id,'alex');
+  assert.match(profile(),/No account needed/);
+  assert.equal(service.items().length,6);
+  const conversation=await service.contact('headphones');
+  await service.sendMessage(conversation,'Hello from the no-sign-up demo.');
+  const claim=await service.requestClaim('headphones','My headphones have a blue sticker inside the left ear cup.');
+  service.switchDemoUser('jamie');
+  assert.equal(service.messages(conversation)[0].text,'Hello from the no-sign-up demo.');
+  await service.changeClaim(claim,'Under Review');
+  await service.changeClaim(claim,'Approved');
+  await service.arrangePickup(claim,'Main office','2099-01-01T12:00:00.000Z');
+  service.switchDemoUser('alex');
+  await service.confirmPickup(claim);
+  service.switchDemoUser('jamie');
+  await service.changeClaim(claim,'Completed');
+  assert.equal(service.item('headphones').status,'Returned');
+  const claimView=service.conversations(); assert.equal(claimView.length,1);
+  await service.refresh(); assert.equal(requests,0);
+  service.exitDemo();
+  assert.equal(service.isDemo(),false); assert.equal(service.currentUser(),null);
+  assert.equal(session.has('reclaim.mode'),false); assert.equal(local.has('reclaim.demo.v1'),true);
+  globalThis.fetch=async()=>Response.json(state);
+  await service.refresh();
+  assert.deepEqual(service.conversations(),[]); assert.deepEqual(service.items(),[]);
+});

@@ -13,7 +13,7 @@ let currentPage='';
 function navigation(page=currentPage) {
   const links=[['','Home'],['browse','Browse'],['report','Report'],['my-reports','My Reports'],['claims','Claims'],['messages','Messages']];
   const user=service.currentUser(), unread=service.unread();
-  document.querySelector('#header').innerHTML=`<div class="demo-banner"><span class="live-dot"></span> A little less lost. A little more connected. <span>Your campus lost-and-found.</span><a href="#/profile">Your account ${icon('arrow')}</a></div><div class="navbar wrap"><a href="#/" class="logo" aria-label="Reclaim. home">Reclaim<span>.</span><span class="logo-mark">✳</span></a><nav aria-label="Main navigation" id="main-nav">${links.map(([path,label]) => `<a href="#/${path}" ${page===path?'aria-current="page"':''}>${label}${path==='messages'&&unread?`<span class="nav-count" aria-label="${unread} unread messages">${unread}</span>`:''}</a>`).join('')}</nav><a href="#/profile" class="profile-link ${page==='profile'?'active':''}" aria-label="${user ? `Profile for ${esc(user.name)}` : 'Log in to Reclaim'}"><span class="avatar small">${user ? esc(user.initials) : icon('user')}</span><span>${user ? 'Profile' : 'Log in'}</span></a><button id="menu-toggle" class="icon-button" aria-controls="main-nav" aria-expanded="false" aria-label="Toggle navigation">${icon('menu')}</button></div>`;
+  document.querySelector('#header').innerHTML=`<div class="demo-banner"><span class="live-dot"></span> ${service.isDemo() ? 'Demo mode · No sign-up needed.' : 'A little less lost. A little more connected.'} <span>${service.isDemo() ? 'Saved only in this browser.' : 'Your campus lost-and-found.'}</span><a href="${service.isDemo() ? '#/account' : '#/demo'}">${service.isDemo() ? 'Use an account' : 'Try the demo'} ${icon('arrow')}</a></div><div class="navbar wrap"><a href="#/" class="logo" aria-label="Reclaim. home">Reclaim<span>.</span><span class="logo-mark">✳</span></a><nav aria-label="Main navigation" id="main-nav">${links.map(([path,label]) => `<a href="#/${path}" ${page===path?'aria-current="page"':''}>${label}${path==='messages'&&unread?`<span class="nav-count" aria-label="${unread} unread messages">${unread}</span>`:''}</a>`).join('')}</nav><a href="#/profile" class="profile-link ${page==='profile'?'active':''}" aria-label="${user ? `Profile for ${esc(user.name)}` : 'Log in to Reclaim'}"><span class="avatar small">${user ? esc(user.initials) : icon('user')}</span><span>${user ? 'Profile' : 'Log in'}</span></a><button id="menu-toggle" class="icon-button" aria-controls="main-nav" aria-expanded="false" aria-label="Toggle navigation">${icon('menu')}</button></div>`;
   document.querySelector('#menu-toggle').onclick=e => { const b=e.currentTarget, expanded=b.getAttribute('aria-expanded')==='true'; b.setAttribute('aria-expanded',String(!expanded)); document.querySelector('#main-nav').classList.toggle('open',!expanded); };
 }
 document.querySelector('#footer').innerHTML=`<div class="wrap footer-main"><div><a class="logo" href="#/">Reclaim<span>.</span></a><p>Lost it? Let’s find it.</p></div><div class="footer-note">A little less lost.<br>A little more connected.</div><nav aria-label="Footer"><a href="#/browse">Browse items ${icon('arrow')}</a><a href="#/report">Report an item ${icon('arrow')}</a><a href="#/profile">Your account ${icon('arrow')}</a></nav></div><div class="wrap footer-bottom"><span>Made for the everyday things that matter.</span><span>Your campus lost-and-found</span><span>© ${new Date().getFullYear()} Reclaim.</span></div>`;
@@ -49,18 +49,23 @@ let loading = 0;
 async function loadPage({focus=false}={}) {
   const attempt = ++loading;
   try {
+    const page=(location.hash.slice(1)||'/').split('?')[0].split('/').filter(Boolean)[0] || '';
+    if (page==='demo') { await service.startDemo(); location.replace('#/'); return; }
+    if (page==='account') { service.exitDemo(); location.replace('#/profile'); return; }
+    if (['login','signup','recover'].includes(page)) service.exitDemo();
     await service.refresh();
     if (attempt === loading) render({focus});
   } catch (error) {
     if (attempt !== loading) return;
     navigation();
-    document.querySelector('#main').innerHTML = `<section class="wrap page-section">${empty('Let’s reconnect.',error.message,'<button class="btn primary" id="retry-page">Try again</button>')}</section>`;
+    document.querySelector('#main').innerHTML = `<section class="wrap page-section">${empty('Let’s reconnect.',error.message,'<div class="button-row"><button class="btn primary" id="retry-page">Try again</button><a class="btn secondary" href="#/demo">Try the demo without signing up</a></div>')}</section>`;
     document.querySelector('#retry-page').onclick = () => loadPage({focus:true});
   }
 }
 window.addEventListener('hashchange',()=> { document.querySelector('#modal').close(); loadPage({focus:true}); });
 window.addEventListener('beforeunload',e => { if(currentPage==='report'&&hasReportDraft()) { e.preventDefault(); e.returnValue=''; } });
 window.addEventListener('reclaim:session-expired',()=> { document.querySelector('#modal').close(); location.replace(loginLink(location.hash.slice(1))); toast('Your session ended. Log in to continue.'); });
+window.addEventListener('reclaim:external-change',()=> { if(service.isDemo() && !(currentPage==='report'&&hasReportDraft())) render(); });
 window.addEventListener('reclaim:account-change',()=> { document.querySelector('#modal').close(); document.querySelector('#main').innerHTML='<section class="wrap page-section"><p>Updating your account…</p></section>'; toast('Your account changed in another tab.'); loadPage(); });
 window.addEventListener('focus',()=> { if (!['report','login','signup','recover'].includes(currentPage) && !document.querySelector('#modal').open) loadPage(); });
 // Refresh incoming conversations without interrupting a message being written.
